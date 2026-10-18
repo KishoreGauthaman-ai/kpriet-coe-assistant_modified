@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".opencode/skills/agent-browser/SKILL.md",
+    ".opencode/skills/anti-hallucination-build/SKILL.md",
+    ".opencode/skills/anti-ui-slop/SKILL.md",
+    ".opencode/skills/email-and-password-best-practices/SKILL.md",
+    ".opencode/skills/find-skills/SKILL.md",
+    ".opencode/skills/nodejs-backend-patterns/SKILL.md",
+    ".opencode/skills/ui-design/SKILL.md",
+    ".opencode/skills/ui-radar/SKILL.md",
+    ".opencode/skills/vercel-react-best-practices/SKILL.md",
+    ".opencode/skills/web-design-guidelines/SKILL.md"
+  ],
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "@playwright/mcp@latest"
+      ],
+      "enabled": true
+    },
+    "fetch-mcp": {
+      "type": "local",
+      "command": ["uvx", "mcp-server-fetch"],
+      "enabled": true
+    },
+    "git-mcp": {
+      "type": "local",
+      "command": ["uvx", "mcp-server-git"],
+      "enabled": true
+    }
+  }
+}

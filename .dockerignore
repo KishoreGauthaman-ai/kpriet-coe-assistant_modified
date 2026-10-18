@@ -1,0 +1,9 @@
+# KPRIET COE Assistant — root .dockerignore
+# (applies to docker-compose builds at the root level if needed)
+.git/
+.gitignore
+__pycache__/
+node_modules/
+dist/
+*.log
+.DS_Store

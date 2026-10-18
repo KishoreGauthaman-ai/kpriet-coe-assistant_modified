@@ -1,0 +1,30 @@
+{
+  "name": "kpriet-coe-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "autoprefixer": "^10.4.0",
+    "axios": "^1.7.0",
+    "lucide-react": "^1.37.0",
+    "markdown-it": "^14.1.0",
+    "postcss": "^8.5.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.0",
+    "react-router-dom": "^6.28.0",
+    "tailwindcss": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "vite": "^6.2.0"
+  }
+}

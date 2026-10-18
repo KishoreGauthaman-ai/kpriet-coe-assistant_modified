@@ -1,0 +1,43 @@
+# ===== KPRIET COE Assistant — llama-server (CUDA 12.4 GPU build) =====
+# Use this image only when deploying on a host with an NVIDIA GPU
+# (e.g. L4, A10, A100, RTX 4090). For CPU-only dev, use the base
+# Dockerfile instead.
+#
+# Prerequisites on the host:
+#   - NVIDIA driver >= 525
+#   - nvidia-container-toolkit installed
+#   - Rebuilt llama-server binary with -DGGML_CUDA=ON in ./bin/
+#     (see ../../scripts/build-llama-cuda.sh)
+#
+# The image expects the CUDA-enabled llama-server + libggml-cuda.so
+# (plus existing CPU libs as fallback) to be present in ./bin/.
+
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+
+# Minimal runtime libs — CUDA runtime already in the base image.
+# libgomp1 = OpenMP (used by CPU fallback path inside ggml).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgomp1 ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the CUDA-enabled llama-server binary and all shared libs.
+# bin/ must contain (after running scripts/build-llama-cuda.sh):
+#   llama-server
+#   libllama.so*
+#   libllama-server-impl.so*
+#   libllama-common.so*
+#   libggml.so*
+#   libggml-base.so*
+#   libggml-cpu.so*
+#   libggml-cuda.so*    <-- CUDA backend (GPU build only)
+COPY bin/llama-server /usr/local/bin/llama-server
+COPY bin/*.so* /usr/local/lib/
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+VOLUME ["/models"]
+EXPOSE 8080
+
+ENTRYPOINT ["llama-server"]

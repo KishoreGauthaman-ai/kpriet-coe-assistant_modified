@@ -1,0 +1,165 @@
+# ============================================================
+# KPRIET COE Assistant — Docker Compose
+# ============================================================
+#
+# 4 services:
+#   1. llama-base       — Qwen3.5-4B base model (RAG knowledge) on :8080
+#   2. llama-reasoning  — Qwen3.5-4B reasoning model on :8081
+#   3. backend          — FastAPI app (embedder + voice + chat + ingest)
+#   4. frontend          — Nginx-served React production build on :3000
+#
+# Models are mounted read-only from ./models.
+# Data (SQLite / ChromaDB / raw docs) persists in ./data.
+#
+# EVERY SERVICE is bound to 127.0.0.1 internally.
+# Only ports that MUST be accessible externally are exposed via `ports:`.
+#
+# Usage:
+#   CPU (dev):   docker compose up --build -d
+#   GPU (prod):  docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+#   Open http://127.0.0.1:3000
+#
+# CPU mode enables light batching (--parallel 4 --cont-batch).
+# GPU mode enables full batching (--parallel 32, all layers offloaded).
+# See docker-compose.gpu.yml and scripts/build-llama-cuda.sh for GPU setup.
+# ============================================================
+
+services:
+
+  # --- 1. Base LLM server (Knowledge / RAG mode) ---
+  # CPU mode. Use docker-compose.gpu.yml to enable GPU + continuous batching:
+  #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+  llama-base:
+    build:
+      context: ./llama-server
+      dockerfile: Dockerfile
+    container_name: kpriet-llama-base
+    command:
+      - "-m"
+      - "/models/base/Qwen3.5-4B-Q5_K_M.gguf"
+      - "--port"
+      - "8080"
+      - "--host"
+      - "0.0.0.0"
+      - "--ctx-size"
+      - "16384"
+      - "--threads"
+      - "8"
+      - "--parallel"
+      - "4"
+      - "--cont-batching"
+      - "--batch-size"
+      - "512"
+      - "--ubatch-size"
+      - "256"
+    volumes:
+      - ./models:/models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8080/v1/models"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # ----------------------------------------------------------
+  # 2. Reasoning LLM server (reasoning mode)
+  # ----------------------------------------------------------
+  llama-reasoning:
+    build:
+      context: ./llama-server
+      dockerfile: Dockerfile
+    container_name: kpriet-llama-reasoning
+    volumes:
+      - ./models:/models:ro
+    command:
+      - "-m"
+      - "/models/reasoning/Qwen3.5-4B-Q5_K_M.gguf"
+      - "--port"
+      - "8081"
+      - "--host"
+      - "0.0.0.0"
+      - "--ctx-size"
+      - "16384"
+      - "--threads"
+      - "8"
+      - "--parallel"
+      - "4"
+      - "--cont-batching"
+      - "--batch-size"
+      - "512"
+      - "--ubatch-size"
+      - "256"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8081/v1/models"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # ----------------------------------------------------------
+  # 3. FastAPI backend
+  # ----------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kpriet-backend
+    volumes:
+      - ./data:/data
+      - ./models:/models:ro
+    environment:
+      - ENV=prod
+      - HOST=0.0.0.0
+      - PORT=8000
+      - FRONTEND_URL=http://127.0.0.1:3000
+      - BASE_SERVER_URL=http://llama-base:8080
+      - REASONING_SERVER_URL=http://llama-reasoning:8081
+      - EMBEDDING_MODEL_PATH=/models/embedding/bge-m3-Q5_K_M.gguf
+      - VOICE_MODEL_PATH=/models/faster-whisper-small
+      - DATA_DIR=/data
+      - RAW_DOCS_DIR=/data/raw_documents
+      - VECTOR_DB_DIR=/data/vector_db
+      - SQLITE_PATH=/data/sqlite_db/coassistant.db
+      - EMBED_N_GPU_LAYERS=0
+      - EMBED_N_THREADS=8
+      - VOICE_DEVICE=cpu
+      - VOICE_COMPUTE_TYPE=int8
+      - MAX_TOKENS=512
+      - DISTANCE_THRESHOLD=0.45
+      - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET in .env or shell before docker compose up}
+      - SEED_ADMIN_EMAIL=admin@kpriet.ac.in
+      - SEED_ADMIN_PASSWORD=KPR@1234
+      - SEED_ADMIN_NAME=COE Administrator
+    ports:
+      - "8000:8000"
+    depends_on:
+      llama-base:
+        condition: service_healthy
+      llama-reasoning:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  # ----------------------------------------------------------
+  # 4. Frontend (React → Nginx on :3000)
+  # ----------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "/api/v1"
+    container_name: kpriet-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

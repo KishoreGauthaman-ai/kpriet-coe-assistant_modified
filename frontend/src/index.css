@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dark-900: #0b0b10;
+  --color-dark-800: #13131a;
+  --color-dark-700: #1a1a24;
+  --color-dark-600: #23232f;
+  --color-dark-500: #2b2b3a;
+  --color-dark-400: #3a3a4d;
+  --color-accent: #7c3aed;
+  --color-accent-soft: #8b5cf6;
+  --color-accent-reasoning-on: #a78bfa;
+  --color-accent-reasoning-off: #5b5b74;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--color-dark-900);
+  color: #e5e7eb;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-dark-400); border-radius: 3px; }
+
+/* ---- Focus ring (single source of truth) ---- */
+*:focus-visible {
+  outline: 2px solid var(--color-accent-soft);
+  outline-offset: 1px;
+}
+
+/* ---- Surfaces ---- */
+.surface-card {
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-500);
+  border-radius: 12px;
+}
+.surface-raised {
+  background: var(--color-dark-700);
+  border: 1px solid var(--color-dark-500);
+  border-radius: 8px;
+}
+.surface-input {
+  background: var(--color-dark-700);
+  border: 1px solid var(--color-dark-500);
+  transition: border-color 150ms ease-out;
+}
+.surface-input:focus {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent-soft);
+  outline-offset: 1px;
+}
+
+/* ---- Compat aliases (kept so existing class strings keep working) ---- */
+.glass-card {
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-500);
+}
+.glass-subtle {
+  background: var(--color-dark-700);
+  border: 1px solid var(--color-dark-500);
+}
+.glass-input {
+  background: var(--color-dark-700);
+  border: 1px solid var(--color-dark-500);
+  transition: border-color 150ms ease-out;
+}
+.glass-input:focus {
+  border-color: var(--color-accent);
+}
+/* No glows. .glass-glow intentionally inert. */
+.glass-glow { }
+
+/* ---- Light theme ---- */
+[data-theme="light"] {
+  color-scheme: light;
+}
+[data-theme="light"] body {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+[data-theme="light"] .glass-card,
+[data-theme="light"] .surface-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+[data-theme="light"] .glass-subtle,
+[data-theme="light"] .surface-raised {
+  background: #f7f7f9;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+[data-theme="light"] .glass-input,
+[data-theme="light"] .surface-input {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+/* ---- Light theme overlay utilities (unlayered, so they win) ---- */
+[data-theme="light"] .bg-app { background: #eef0f4; }
+[data-theme="light"] .bg-inside { background: #ffffff; }
+[data-theme="light"] .text-main { color: #1f2937; }
+[data-theme="light"] .text-muted { color: #6b7280; }
+[data-theme="light"] .text-faint { color: #9ca3af; }
+[data-theme="light"] .border-app { border-color: rgba(0, 0, 0, 0.08); }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #d1d5db; }
+[data-theme="light"] .prose-invert {
+  --tw-prose-body: #374151;
+  --tw-prose-headings: #111827;
+  --tw-prose-lead: #4b5563;
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-bold: #111827;
+  --tw-prose-counters: #6b7280;
+  --tw-prose-bullets: #9ca3af;
+  --tw-prose-hr: #e5e7eb;
+  --tw-prose-quotes: #374151;
+  --tw-prose-quote-borders: #e5e7eb;
+  --tw-prose-captions: #6b7280;
+  --tw-prose-code: #111827;
+  --tw-prose-pre-code: #e5e7eb;
+  --tw-prose-pre-bg: #111827;
+  --tw-prose-th-borders: #d1d5db;
+  --tw-prose-td-borders: #e5e7eb;
+}
+
+/* ---- Base theme utilities (work in both, dark default) ---- */
+.bg-app { background: var(--color-dark-900); }
+.bg-inside { background: var(--color-dark-800); }
+.text-main { color: #e5e7eb; }
+.text-muted { color: #94a3b8; }
+.text-faint { color: #6b7280; }
+.border-app { border-color: var(--color-dark-500); }
+
+/* ---- Motion discipline ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

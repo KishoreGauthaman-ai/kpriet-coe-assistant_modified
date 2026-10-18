@@ -1,0 +1,120 @@
+# ============================================================
+# KPRIET COE Assistant — GPU Override (NVIDIA L4, CUDA 12.4)
+# ============================================================
+#
+# Layered on top of docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+#
+# What this overrides:
+#   1. llama-base / llama-reasoning:
+#      - Use Dockerfile.gpu (CUDA 12.4 runtime base)
+#      - --n-gpu-layers -1   (full GPU offload, all layers to L4)
+#      - --parallel 32       (32 concurrent sequence slots)
+#      - --cont-batch        (continuous / in-flight batching)
+#      - --batch-size 1024   (prompt processing batch)
+#      - --ubatch-size 256   (physical batch for prompt eval)
+#      - --ctx-size 32768    (8192 logic ctx × 4 for parallel slots)
+#      - GPU device passthrough via deploy.resources.reservations.devices
+#   2. backend:
+#      - Use Dockerfile.gpu (CUDA 12.4 base + cu124 llama-cpp-python wheel)
+#      - EMBED_N_GPU_LAYERS=-1  (bge-m3 embedder fully on GPU)
+#      - VOICE_DEVICE=cuda      (faster-whisper on GPU)
+#      - VOICE_COMPUTE_TYPE=float16
+#      - GPU device passthrough
+#
+# Prerequisites on the host:
+#   1. NVIDIA driver >= 525 (supports CUDA 12.4 on L4)
+#   2. nvidia-container-toolkit installed
+#   3. Rebuilt llama-server binary with CUDA (see scripts/build-llama-cuda.sh)
+#
+# Expected throughput on L4 (24GB VRAM, Qwen3.5-4B Q5):
+#   1 user  : ~55-60 tok/s
+#   15 users: ~25-30 tok/s each  (~400 aggregate)
+#   32 users: ~14-18 tok/s each  (~500 aggregate)
+# ============================================================
+
+services:
+
+  # --- 1. Base LLM server (GPU) ---
+  llama-base:
+    build:
+      context: ./llama-server
+      dockerfile: Dockerfile.gpu
+    command:
+      - "-m"
+      - "/models/base/Qwen3.5-4B-Q5_K_M.gguf"
+      - "--port"
+      - "8080"
+      - "--host"
+      - "0.0.0.0"
+      - "--n-gpu-layers"
+      - "-1"
+      - "--parallel"
+      - "32"
+      - "--cont-batching"
+      - "--batch-size"
+      - "1024"
+      - "--ubatch-size"
+      - "256"
+      - "--ctx-size"
+      - "32768"
+      - "--threads"
+      - "8"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu"]
+
+  # --- 2. Reasoning LLM server (GPU) ---
+  llama-reasoning:
+    build:
+      context: ./llama-server
+      dockerfile: Dockerfile.gpu
+    command:
+      - "-m"
+      - "/models/reasoning/Qwen3.5-4B-Q5_K_M.gguf"
+      - "--port"
+      - "8081"
+      - "--host"
+      - "0.0.0.0"
+      - "--n-gpu-layers"
+      - "-1"
+      - "--parallel"
+      - "32"
+      - "--cont-batching"
+      - "--batch-size"
+      - "1024"
+      - "--ubatch-size"
+      - "256"
+      - "--ctx-size"
+      - "32768"
+      - "--threads"
+      - "8"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu"]
+
+  # --- 3. FastAPI backend (GPU) ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.gpu
+    environment:
+      - EMBED_N_GPU_LAYERS=-1
+      - EMBED_N_THREADS=4
+      - VOICE_DEVICE=cuda
+      - VOICE_COMPUTE_TYPE=float16
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu"]

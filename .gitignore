@@ -1,0 +1,44 @@
+# ===== KPRIET COE Assistant — .gitignore =====
+
+# ---- Secrets: NEVER commit real .env files ----
+*.env
+!.env.example
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+*.log
+npm-debug.log*
+
+# ---- Python / backend ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# ---- Runtime data & models (large / regenerable) ----
+kpriet-coe-assistant/data/
+kpriet-coe-assistant/models/
+kpriet-coe-assistant/backend/backend.log
+kpriet-coe-assistant/llama-server/bin/cpu-backup/
+kpriet-coe-assistant/llama-server/bin/*.gguf
+kpriet-coe-assistant/llama-server/models/
+
+# ---- AI Workspace / Assistant Tools ----
+.opencode/
+.playwright-mcp/
+skills-lock.json
+tui.json
+opencode.json.tui-migration.bak
+
+# ---- Temporary Root Assets (not source) ----
+login-1280.png
+microphone.png
+
+# ---- Editor / OS ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

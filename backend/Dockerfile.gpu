@@ -1,0 +1,62 @@
+# ===== KPRIET COE Assistant — Backend (FastAPI, CUDA 12.4 GPU) =====
+# Use this image only when deploying on a host with an NVIDIA GPU
+# (e.g. L4). For CPU-only dev, use the base Dockerfile instead.
+#
+# Differences from the CPU Dockerfile:
+#   - Base: nvidia/cuda:12.4.0-runtime-ubuntu22.04 (vs python:3.10-slim)
+#   - Adds libcublas-12-4 (needed by CTranslate2 / faster-whisper for GPU voice)
+#   - llama-cpp-python wheel from cu124 index (GPU-enabled bge-m3 embedder)
+#   - EMBED_N_GPU_LAYERS=-1 (full GPU offload of bge-m3)
+#   - VOICE_DEVICE=cuda, VOICE_COMPUTE_TYPE=float16 (GPU voice transcription)
+#
+# Prerequisites on the host:
+#   - NVIDIA driver >= 525
+#   - nvidia-container-toolkit installed
+
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+
+# Python 3.10 + build deps + CUDA libs for CTranslate2 (faster-whisper GPU)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.10 python3.10-venv python3-pip \
+        build-essential cmake git ffmpeg libsndfile1 curl \
+        libcublas-12-4 \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3.10 /usr/bin/python3 \
+    && ln -sf /usr/bin/python3 /usr/bin/python
+
+WORKDIR /app
+
+# Install Python deps — GPU wheel of llama-cpp-python from the cu124 index.
+COPY requirements.txt .
+RUN pip install --no-cache-dir \
+        --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124 \
+        "llama-cpp-python==0.3.34" \
+    && pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY app/ ./app/
+
+# Data & models are mounted as volumes at runtime
+VOLUME ["/app/data", "/models"]
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    ENV=prod \
+    HOST=0.0.0.0 \
+    PORT=8000 \
+    FRONTEND_URL=http://127.0.0.1:3000 \
+    BASE_SERVER_URL=http://llama-base:8080 \
+    REASONING_SERVER_URL=http://llama-reasoning:8081 \
+    DATA_DIR=/data \
+    RAW_DOCS_DIR=/data/raw_documents \
+    VECTOR_DB_DIR=/data/vector_db \
+    SQLITE_PATH=/data/sqlite_db/coassistant.db \
+    EMBEDDING_MODEL_PATH=/models/embedding/bge-m3-Q5_K_M.gguf \
+    EMBED_N_GPU_LAYERS=-1 \
+    EMBED_N_THREADS=4 \
+    VOICE_DEVICE=cuda \
+    VOICE_COMPUTE_TYPE=float16
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

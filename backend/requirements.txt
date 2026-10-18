@@ -1,0 +1,53 @@
+# ===== KPRIET COE Assistant — Backend dependencies (Python 3.10+) =====
+# Local-only: no cloud APIs, no runtime model downloads.
+# All GGUF models pre-exist under ../models/.
+
+# --- Web framework & ASGI ---
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9
+sse-starlette==2.1.3
+
+# --- Config & validation ---
+pydantic==2.7.4
+pydantic-settings==2.3.4
+
+# --- Auth & security ---
+PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.3
+
+# --- HTTP client (talk to llama-server :8080 / :8081) ---
+httpx==0.27.0
+
+# --- Local GGUF embedding (bge-m3) ---
+llama-cpp-python==0.3.34
+numpy==1.26.4
+
+# --- Vector store ---
+chromadb==0.5.3
+
+# --- SQLite ORM / metadata for users & indexed files ---
+SQLAlchemy==2.0.31
+
+# --- Document parsing via LangChain loaders (PDF/DOCX/DOC/CSV/Excel/TXT/MD/HTML) ---
+langchain==0.3.30
+langchain-community==0.3.31
+langchain-core==0.3.86
+langchain-text-splitters==0.3.11
+pypdf==6.15.0
+pdfplumber==0.11.7
+python-docx==1.1.2
+docx2txt==0.9
+openpyxl==3.1.5
+unstructured==0.18.32
+msoffcrypto-tool==6.0.0
+pandas==2.3.3
+
+# --- Voice-to-text (Whisper GGUF via CTranslate2) ---
+faster-whisper==1.0.3
+tokenizers==0.15.2
+
+# NOTE (system dependency): faster-whisper occasionally needs ffmpeg for
+# exotic audio containers. Install via your package manager if needed:
+#   sudo apt-get install -y ffmpeg
